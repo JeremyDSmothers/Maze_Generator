@@ -1,17 +1,28 @@
+from math import floor, sqrt
 import pygame
 from pygame.constants import QUIT
 import helper
 import random
+import colorsys
 pygame.init()
 
 #global variables
-window_width = window_height = 400
-square_width = 10
+window_width = window_height = 900
+square_width = 20
 grid = []
 #current cell
 current = None
 
 stack = []
+
+# win = pygame.display.set_mode((0, 0), pygame.NOFRAME)
+
+# flags = win.get_flags()
+# bits = win.get_bitsize()
+
+# win = pygame.display.set_mode()
+
+# window_width, window_height = pygame.display.get_surface().get_size()
 
 win = pygame.display.set_mode((window_width, window_height))
 
@@ -19,36 +30,52 @@ pygame.display.set_caption("Maze Generator")
 
 clock = pygame.time.Clock()
 
+def calc_dist(v1, v2):
+    return floor(sqrt((v1[0] - v2[0])**2 + (v1[1] - v2[1]) ** 2))
+
 #classes
 class Cell:
     def __init__(self, i, j):
         self.i = i
         self.j = j
+        self.color = None
                       #t    #r    #b    #l
         self.walls = [True, True, True, True]
         self.visited = False
 
-    def show(self):
+    def show(self, grid_ind):
         x = self.i * square_width
         y = self.j * square_width
-        
-        #top line
-        if self.walls[0]:
-            pygame.draw.line(win, (200, 200, 200), (x,                y),                (x + square_width, y))
-        #right line
-        if self.walls[1]:
-            pygame.draw.line(win, (200, 200, 200), (x + square_width, y),                (x + square_width, y + square_width))
-        #bottom line
-        if self.walls[2]:
-            pygame.draw.line(win, (200, 200, 200), (x,                y + square_width), (x + square_width, y + square_width))
-        #left line
-        if self.walls[3]:
-            pygame.draw.line(win, (200, 200, 200), (x,                y),                (x,                y + square_width))
-
 
         #fill visited cell with purple alpha color
         if self.visited:
-            helper.draw_rect_alpha(win, (255, 0, 255, 100), (x, y, square_width, square_width))
+            if(self.color is None):
+                currentVect = pygame.math.Vector2(self.i, self.j)
+
+                dist = calc_dist(currentVect, center)
+                hu = dist / max_dist
+
+                r, g, b = colorsys.hsv_to_rgb(hu, 1, 1)
+                r *= 255
+                g *= 255
+                b *= 255
+                self.color = (r, g, b)
+
+            helper.draw_rect_alpha(win, self.color, (x, y, square_width, square_width))
+        
+        black = (0, 0, 0)
+        #top line
+        if self.walls[0]:
+            pygame.draw.line(win, black, (x,                y),                (x + square_width, y))
+        #right line
+        if self.walls[1]:
+            pygame.draw.line(win, black, (x + square_width, y),                (x + square_width, y + square_width))
+        #bottom line
+        if self.walls[2]:
+            pygame.draw.line(win, black, (x,                y + square_width), (x + square_width, y + square_width))
+        #left line
+        if self.walls[3]:
+            pygame.draw.line(win, black, (x,                y),                (x,                y + square_width))
 
     def checkNeighbors(self):
         neighbors = []
@@ -102,11 +129,26 @@ for j in range(rows):
         cell = Cell(i, j)
         grid.append(cell)
 
-current = grid[1000]
+current = grid[0]
 current.highlight()
+
+origin = pygame.math.Vector2(0, 0)
+center = pygame.math.Vector2(rows//2, cols//2)
+max_dist = calc_dist(origin, center)
 
 ##### end setup "function" ######
 
+def reset():
+    global grid
+    grid = []
+
+    for j in range(rows):
+        for i in range(cols):
+            cell = Cell(i, j)
+            grid.append(cell)
+    global current
+    current = grid[0]
+    current.highlight()
 
 def index(i, j):
     if i < 0 or j < 0 or i > cols - 1 or j > rows - 1:
@@ -137,7 +179,7 @@ def redrawGameWindow():
     win.fill((51, 51, 51))
 
     for i in range(len(grid)):
-        grid[i].show()
+        grid[i].show(i)
 
     global current
     current.visited = True
@@ -161,6 +203,8 @@ def redrawGameWindow():
     elif len(stack) > 0:
         current = stack.pop()
         current.highlight()
+    else:
+        reset()
 
     pygame.display.update()
 
@@ -168,7 +212,7 @@ def redrawGameWindow():
 run = True
 while run:
     # clock.tick(200)
-    # pygame.time.delay(25)
+    # pygame.time.delay(250)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
